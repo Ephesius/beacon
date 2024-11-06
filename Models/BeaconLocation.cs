@@ -1,8 +1,6 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿namespace Beacon.Models;
 
-namespace Beacon.Models;
-
-public partial class BeaconLocation : ObservableObject
+public record BeaconLocation
 {
     public double Latitude { get; set; }
     public double Longitude { get; set; }
