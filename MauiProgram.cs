@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Beacon.Services;
+using Microsoft.Extensions.Logging;
 
 namespace Beacon
 {
@@ -14,6 +15,14 @@ namespace Beacon
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 });
+
+            // Register services
+            builder.Services.AddSingleton<IBeaconLocationService, BeaconLocationService>();
+            builder.Services.AddSingleton<IStateService, StateService>();
+
+            // Register MAUI dependencies required by the services
+            builder.Services.AddSingleton(Geolocation.Default);
+            builder.Services.AddSingleton(Compass.Default);
 
 #if DEBUG
     		builder.Logging.AddDebug();
