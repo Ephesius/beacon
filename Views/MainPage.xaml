@@ -74,10 +74,10 @@
             <Grid IsVisible="{Binding CurrentState, Converter={StaticResource StateToVisibilityConverter}, ConverterParameter={x:Static models:AppState.Navigation}}"
                   RowDefinitions="*,Auto">
                 <Image Grid.Row="0"
-                       Source="compass_arrow.png"
+                       Source="compass_nav.svg"
                        Rotation="{Binding Bearing}"
-                       HeightRequest="200"
-                       WidthRequest="200"
+                       HeightRequest="300"
+                       WidthRequest="300"
                        HorizontalOptions="Center"
                        VerticalOptions="Center" />
                 <Label Grid.Row="1"
