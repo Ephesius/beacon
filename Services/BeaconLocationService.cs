@@ -127,27 +127,34 @@ public partial class BeaconLocationService : ObservableObject, IBeaconLocationSe
     {
         try
         {
-            var location = await _geolocation.GetLocationAsync(new GeolocationRequest
+            var request = new GeolocationRequest
             {
                 DesiredAccuracy = GeolocationAccuracy.Best,
                 Timeout = TimeSpan.FromSeconds(5)
-            });
+            };
 
-            if (location != null)
+            var location = await _geolocation.GetLocationAsync(request)
+                ?? throw new Exception("Could not get location");
+
+            if (await _geolocation.GetLastKnownLocationAsync() is Location lastLocation)
             {
-                return new BeaconLocation(
-                    location.Latitude,
-                    location.Longitude,
-                    location.Accuracy ?? double.MaxValue);
+                // Use last known location if it's more accurate or if current request failed
+                if (lastLocation.Accuracy < location.Accuracy)
+                {
+                    location = lastLocation;
+                }
             }
 
-            throw new Exception("Could not get location"); // Or we could create a custom LocationException
+            return new BeaconLocation(
+                location.Latitude,
+                location.Longitude,
+                location.Accuracy ?? double.MaxValue);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to get location");
-            StatusMessage = "Unable to get location";
-            throw; // Re-throw to let caller handle the failure
+            StatusMessage = "Unable to get location. Please check location services are enabled.";
+            throw;
         }
     }
 
@@ -160,21 +167,50 @@ public partial class BeaconLocationService : ObservableObject, IBeaconLocationSe
             isTracking = true;
             while (isTracking)
             {
-                var location = await _geolocation.GetLocationAsync(new GeolocationRequest
+                try
                 {
-                    DesiredAccuracy = GeolocationAccuracy.Best,
-                    Timeout = TimeSpan.FromSeconds(5)
-                });
+                    var request = new GeolocationRequest
+                    {
+                        DesiredAccuracy = GeolocationAccuracy.Best,
+                        Timeout = TimeSpan.FromSeconds(5)
+                    };
 
-                if (location != null)
+                    var location = await _geolocation.GetLocationAsync(request);
+
+                    if (location != null)
+                    {
+                        CurrentAccuracy = location.Accuracy ?? double.MaxValue;
+                        UpdateSignalStatus(CurrentAccuracy);
+
+                        // Only update location if it's valid
+                        if (BeaconLocation.IsValidCoordinate(
+                            location.Latitude,
+                            location.Longitude,
+                            CurrentAccuracy))
+                        {
+                            CurrentLocation = new BeaconLocation(
+                                location.Latitude,
+                                location.Longitude,
+                                CurrentAccuracy);
+                        }
+                    }
+                    else
+                    {
+                        UpdateSignalStatus(double.MaxValue);
+                    }
+                }
+                catch (TaskCanceledException)
                 {
-                    CurrentLocation = new BeaconLocation(
-                        location.Latitude,
-                        location.Longitude,
-                        location.Accuracy ?? double.MaxValue);
+                    // Timeout is expected occasionally, just update status and continue
+                    UpdateSignalStatus(double.MaxValue);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error during location update");
+                    StatusMessage = "Location update error";
 
-                    CurrentAccuracy = location.Accuracy ?? double.MaxValue;
-                    UpdateSignalStatus(location.Accuracy ?? double.MaxValue);
+                    // Short pause before retrying
+                    await Task.Delay(TimeSpan.FromSeconds(1));
                 }
 
                 await Task.Delay(UpdateInterval);
@@ -185,6 +221,7 @@ public partial class BeaconLocationService : ObservableObject, IBeaconLocationSe
         {
             _logger.LogError(ex, "Failed to start location updates");
             StatusMessage = "Failed to start location tracking";
+            isTracking = false;
         }
     }
 
@@ -234,8 +271,22 @@ public partial class BeaconLocationService : ObservableObject, IBeaconLocationSe
 
     public Task StopCompass()
     {
-        _compass.ReadingChanged -= Compass_ReadingChanged;
-        _compass.Stop();
+        try
+        {
+            if (_compass.IsSupported)
+            {
+                _compass.ReadingChanged -= Compass_ReadingChanged;
+                _compass.Stop();
+            }
+        }
+        catch (FeatureNotSupportedException)
+        {
+            // Already in GPS-only mode, no action needed
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error stopping compass");
+        }
         return Task.CompletedTask;
     }
 
@@ -249,9 +300,17 @@ public partial class BeaconLocationService : ObservableObject, IBeaconLocationSe
 
     public async Task<bool> FallbackToGPSOnly()
     {
-        await StopCompass();
-        StatusMessage = "Using GPS only mode";
-        return true;
+        try
+        {
+            await StopCompass();
+            StatusMessage = "Using GPS only mode";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fall back to GPS only mode");
+            return false;
+        }
     }
 
     private void UpdateSignalStatus(double accuracy)
@@ -267,7 +326,7 @@ public partial class BeaconLocationService : ObservableObject, IBeaconLocationSe
         {
             GPSStatus.Strong => "GPS signal strong",
             GPSStatus.Weak => "GPS signal weak",
-            _ => "No GPS signal"
+            _ => "Waiting for better GPS signal..."
         };
     }
 
