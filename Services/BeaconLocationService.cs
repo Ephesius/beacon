@@ -138,17 +138,25 @@ public partial class BeaconLocationService : ObservableObject, IBeaconLocationSe
 
             if (await _geolocation.GetLastKnownLocationAsync() is Location lastLocation)
             {
-                // Use last known location if it's more accurate or if current request failed
+                // Use last known location if it's more accurate
                 if (lastLocation.Accuracy < location.Accuracy)
                 {
                     location = lastLocation;
                 }
             }
 
+            // Validate accuracy requirement
+            var accuracy = location.Accuracy ?? double.MaxValue;
+            if (accuracy > 5.0)
+            {
+                StatusMessage = "Waiting for better GPS accuracy...";
+                throw new Exception("Insufficient GPS accuracy");
+            }
+
             return new BeaconLocation(
                 location.Latitude,
                 location.Longitude,
-                location.Accuracy ?? double.MaxValue);
+                accuracy);
         }
         catch (Exception ex)
         {
