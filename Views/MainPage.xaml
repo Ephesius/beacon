@@ -73,21 +73,27 @@
             <!-- Navigation State -->
             <Grid IsVisible="{Binding CurrentState, Converter={StaticResource StateToVisibilityConverter}, ConverterParameter={x:Static models:AppState.Navigation}}"
                   RowDefinitions="*,Auto">
-                <Image Grid.Row="0"
-                       Source="compass_nav.svg"
-                       Rotation="{Binding Bearing}"
-                       HeightRequest="300"
-                       WidthRequest="300"
-                       HorizontalOptions="Center"
-                       VerticalOptions="Center" />
+                <Grid>
+                    <!-- Direction arrow -->
+                    <Image Source="nav_arrow.png"
+                           Rotation="{Binding ArrowRotation}"
+                           Scale="1.0"
+                           HeightRequest="300"
+                           WidthRequest="300"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center"
+                           Aspect="AspectFit" />
+                </Grid>
+                
                 <Label Grid.Row="1"
-                       Text="{Binding Distance, StringFormat='{0:F0} meters'}"
+                       Text="{Binding Distance, StringFormat='{0:F0} meters away'}"
                        FontSize="24"
-                       HorizontalOptions="Center" />
-                <Button Grid.Row="1"
+                       HorizontalOptions="Center"
+                       />
+                <Button Grid.Row="2"
                         Text="Stop Navigation"
                         Command="{Binding StopNavigationCommand}"
-                        Margin="0,20,0,0" />
+                        Margin="0,80,0,0" />
             </Grid>
 
             <!-- Destination State -->
@@ -112,7 +118,8 @@
             <Grid ColumnDefinitions="*,Auto">
                 <Label Grid.Column="0" 
                        Text="{Binding StatusMessage}"
-                       VerticalOptions="Center" />
+                       VerticalOptions="Center"
+                       HorizontalOptions="Center"/>
                 <Button Grid.Column="1"
                         Text="×"
                         FontSize="20"

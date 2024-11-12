@@ -14,6 +14,7 @@ public partial class BeaconLocationService : ObservableObject, IBeaconLocationSe
     private readonly IGeolocation _geolocation;
     private readonly ICompass _compass;
     private readonly ILogger<BeaconLocationService> _logger;
+    private bool isTracking;
 
     [ObservableProperty]
     private BeaconLocation? currentLocation;
@@ -31,10 +32,7 @@ public partial class BeaconLocationService : ObservableObject, IBeaconLocationSe
     private PermissionStatus currentPermission;
 
     [ObservableProperty]
-    private double currentBearing;
-
-    [ObservableProperty]
-    private string? calibrationStatus;
+    private double deviceOrientation;
 
     private TimeSpan updateInterval = TimeSpan.FromSeconds(1);
     public TimeSpan UpdateInterval
@@ -88,8 +86,6 @@ public partial class BeaconLocationService : ObservableObject, IBeaconLocationSe
         }
     }
 
-    private bool isTracking;
-
     public BeaconLocationService(
         IGeolocation geolocation,
         ICompass compass,
@@ -101,6 +97,27 @@ public partial class BeaconLocationService : ObservableObject, IBeaconLocationSe
 
         SignalStatus = GPSStatus.None;
         StatusMessage = "Waiting for GPS signal...";
+
+        // Start orientation tracking if available
+        if (_compass.IsSupported)
+        {
+            _compass.ReadingChanged += Compass_ReadingChanged;
+            try
+            {
+                _compass.Start(SensorSpeed.Game);
+                _logger.LogInformation("Device orientation tracking started");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to start orientation tracking");
+            }
+        }
+    }
+
+    private void Compass_ReadingChanged(object? sender, CompassChangedEventArgs e)
+    {
+        DeviceOrientation = e.Reading.HeadingMagneticNorth;
+        _logger.LogInformation($"Device orientation updated: {DeviceOrientation}");
     }
 
     public async Task<bool> RequestPermission()
@@ -166,71 +183,78 @@ public partial class BeaconLocationService : ObservableObject, IBeaconLocationSe
         }
     }
 
-    public async Task StartLocationUpdates()
+    public Task StartLocationUpdates()
     {
-        if (isTracking) return;
+        if (isTracking) return Task.CompletedTask;
 
-        try
+        isTracking = true;
+
+        // Start the updates on a background task
+        _ = Task.Run(async () =>
         {
-            isTracking = true;
-            while (isTracking)
+            try
             {
-                try
+                while (isTracking)
                 {
-                    var request = new GeolocationRequest
+                    try
                     {
-                        DesiredAccuracy = GeolocationAccuracy.Best,
-                        Timeout = TimeSpan.FromSeconds(5)
-                    };
-
-                    var location = await _geolocation.GetLocationAsync(request);
-
-                    if (location != null)
-                    {
-                        CurrentAccuracy = location.Accuracy ?? double.MaxValue;
-                        UpdateSignalStatus(CurrentAccuracy);
-
-                        // Only update location if it's valid
-                        if (BeaconLocation.IsValidCoordinate(
-                            location.Latitude,
-                            location.Longitude,
-                            CurrentAccuracy))
+                        var request = new GeolocationRequest
                         {
-                            CurrentLocation = new BeaconLocation(
+                            DesiredAccuracy = GeolocationAccuracy.Best,
+                            Timeout = TimeSpan.FromSeconds(5)
+                        };
+
+                        var location = await _geolocation.GetLocationAsync(request);
+
+                        if (location != null)
+                        {
+                            CurrentAccuracy = location.Accuracy ?? double.MaxValue;
+                            UpdateSignalStatus(CurrentAccuracy);
+
+                            // Only update location if it's valid
+                            if (BeaconLocation.IsValidCoordinate(
                                 location.Latitude,
                                 location.Longitude,
-                                CurrentAccuracy);
+                                CurrentAccuracy))
+                            {
+                                CurrentLocation = new BeaconLocation(
+                                    location.Latitude,
+                                    location.Longitude,
+                                    CurrentAccuracy);
+                            }
+                        }
+                        else
+                        {
+                            UpdateSignalStatus(double.MaxValue);
                         }
                     }
-                    else
+                    catch (TaskCanceledException)
                     {
+                        // Timeout is expected occasionally, just update status and continue
                         UpdateSignalStatus(double.MaxValue);
                     }
-                }
-                catch (TaskCanceledException)
-                {
-                    // Timeout is expected occasionally, just update status and continue
-                    UpdateSignalStatus(double.MaxValue);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error during location update");
-                    StatusMessage = "Location update error";
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error during location update");
+                        StatusMessage = "Location update error";
 
-                    // Short pause before retrying
-                    await Task.Delay(TimeSpan.FromSeconds(1));
-                }
+                        // Short pause before retrying
+                        await Task.Delay(TimeSpan.FromSeconds(1));
+                    }
 
-                await Task.Delay(UpdateInterval);
-                await OptimizeForBattery();
+                    await Task.Delay(UpdateInterval);
+                    await OptimizeForBattery();
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to start location updates");
-            StatusMessage = "Failed to start location tracking";
-            isTracking = false;
-        }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to start location updates");
+                StatusMessage = "Failed to start location tracking";
+                isTracking = false;
+            }
+        });
+
+        return Task.CompletedTask;
     }
 
     public Task StopLocationUpdates()
@@ -251,72 +275,6 @@ public partial class BeaconLocationService : ObservableObject, IBeaconLocationSe
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to recover from signal loss");
-            return false;
-        }
-    }
-
-    public Task<bool> StartCompass()
-    {
-        if (!HasMagnetometer()) return Task.FromResult(false);
-
-        try
-        {
-            _compass.ReadingChanged += Compass_ReadingChanged;
-            _compass.Start(SensorSpeed.UI);
-            return Task.FromResult(true);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to start compass");
-            return Task.FromResult(false);
-        }
-    }
-
-    private void Compass_ReadingChanged(object? sender, CompassChangedEventArgs e)
-    {
-        CurrentBearing = e.Reading.HeadingMagneticNorth;
-    }
-
-    public Task StopCompass()
-    {
-        try
-        {
-            if (_compass.IsSupported)
-            {
-                _compass.ReadingChanged -= Compass_ReadingChanged;
-                _compass.Stop();
-            }
-        }
-        catch (FeatureNotSupportedException)
-        {
-            // Already in GPS-only mode, no action needed
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error stopping compass");
-        }
-        return Task.CompletedTask;
-    }
-
-    public Task<bool> CalibrateCompass()
-    {
-        CalibrationStatus = "Calibrating compass...";
-        return Task.FromResult(true);
-    }
-
-    public bool HasMagnetometer() => _compass.IsSupported;
-
-    public async Task<bool> FallbackToGPSOnly()
-    {
-        try
-        {
-            await StopCompass();
-            StatusMessage = "Using GPS only mode";
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to fall back to GPS only mode");
             return false;
         }
     }

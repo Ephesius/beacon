@@ -14,21 +14,13 @@ public interface IBeaconLocationService : INotifyPropertyChanged
     Task StopLocationUpdates();
     Task<bool> HandleSignalLoss();
 
-    // Compass Methods
-    Task<bool> StartCompass();
-    Task StopCompass();
-    Task<bool> CalibrateCompass();
-    bool HasMagnetometer();
-    Task<bool> FallbackToGPSOnly();
-
     // Observable Properties
     BeaconLocation CurrentLocation { get; }
     double CurrentAccuracy { get; }
     GPSStatus SignalStatus { get; }
     string StatusMessage { get; }
     PermissionStatus CurrentPermission { get; }
-    double CurrentBearing { get; }
-    string CalibrationStatus { get; }
+    double DeviceOrientation { get; }
 
     // Configuration Properties
     TimeSpan UpdateInterval { get; set; }

@@ -47,7 +47,6 @@
 
 		<!-- Images -->
 		<MauiImage Include="Resources\Images\*" />
-		<MauiImage Update="Resources\Images\dotnet_bot.png" Resize="True" BaseSize="300,185" />
 
 		<!-- Custom Fonts -->
 		<MauiFont Include="Resources\Fonts\*" />
@@ -64,7 +63,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Remove="Resources\Images\compass_nav.svg" />
+	  <None Remove="Resources\Images\compass_nav.png" />
+	  <None Remove="Resources\Images\nav_arrow.png" />
 	</ItemGroup>
 	
 	<ItemGroup>

@@ -26,7 +26,13 @@ public partial class MainViewModel : ObservableObject
     private double distance;
 
     [ObservableProperty]
-    private double bearing;
+    private double deviceOrientation;
+
+    [ObservableProperty]
+    private double bearingToBeacon;
+
+    [ObservableProperty]
+    private double arrowRotation;
 
     [ObservableProperty]
     private BeaconLocation? storedBeacon;
@@ -40,12 +46,10 @@ public partial class MainViewModel : ObservableObject
         _stateService = stateService;
         _logger = logger;
 
-        // Subscribe to service events
         _locationService.PropertyChanged += LocationService_PropertyChanged;
         _stateService.BeaconChanged += StateService_BeaconChanged;
         _stateService.StateChanged += StateService_StateChanged;
 
-        // Initialize state
         _ = Initialize();
     }
 
@@ -53,7 +57,6 @@ public partial class MainViewModel : ObservableObject
     {
         try
         {
-            // Check permissions first
             var permissionStatus = await _locationService.CheckPermission();
             if (permissionStatus != PermissionStatus.Granted)
             {
@@ -65,23 +68,11 @@ public partial class MainViewModel : ObservableObject
                 }
             }
 
-            // Start location updates
             await _locationService.StartLocationUpdates();
 
-            // Restore previous state if exists
             StoredBeacon = await _stateService.RetrieveBeacon();
             CurrentState = StoredBeacon != null ? AppState.FindBeacon : AppState.SetBeacon;
             await _stateService.SaveState(CurrentState);
-
-            // Start compass if available
-            if (_locationService.HasMagnetometer())
-            {
-                await _locationService.StartCompass();
-            }
-            else
-            {
-                await _locationService.FallbackToGPSOnly();
-            }
         }
         catch (Exception ex)
         {
@@ -182,14 +173,20 @@ public partial class MainViewModel : ObservableObject
             case nameof(IBeaconLocationService.CurrentLocation):
                 UpdateNavigationInfo();
                 break;
+            case nameof(IBeaconLocationService.DeviceOrientation):
+                DeviceOrientation = _locationService.DeviceOrientation;
+                if (StoredBeacon != null && _locationService.CurrentLocation != null)
+                {
+                    // Need to make sure we have BearingToBeacon before updating rotation
+                    BearingToBeacon = _locationService.CurrentLocation.BearingTo(StoredBeacon);
+                    UpdateArrowRotation();
+                }
+                break;
             case nameof(IBeaconLocationService.SignalStatus):
                 SignalStatus = _locationService.SignalStatus;
                 break;
             case nameof(IBeaconLocationService.StatusMessage):
                 StatusMessage = _locationService.StatusMessage;
-                break;
-            case nameof(IBeaconLocationService.CurrentBearing):
-                Bearing = _locationService.CurrentBearing;
                 break;
         }
     }
@@ -214,6 +211,8 @@ public partial class MainViewModel : ObservableObject
         if (StoredBeacon != null && _locationService.CurrentLocation != null)
         {
             Distance = _locationService.CurrentLocation.DistanceTo(StoredBeacon);
+            BearingToBeacon = _locationService.CurrentLocation.BearingTo(StoredBeacon);
+            UpdateArrowRotation();  // This is already correct - it's called after we have BearingToBeacon
 
             if (Distance <= 5.0 && CurrentState == AppState.Navigation)
             {
@@ -221,5 +220,11 @@ public partial class MainViewModel : ObservableObject
                 _ = _stateService.SaveState(CurrentState);
             }
         }
+    }
+
+    private void UpdateArrowRotation()
+    {
+        ArrowRotation = (BearingToBeacon - DeviceOrientation + 360) % 360;
+        _logger.LogInformation($"Arrow Update - Bearing: {BearingToBeacon}, Device: {DeviceOrientation}, Final Rotation: {ArrowRotation}");
     }
 }

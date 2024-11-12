@@ -51,7 +51,8 @@ public record BeaconLocation
                    Math.Sin(lat1) * Math.Cos(lat2) * Math.Cos(deltaLon);
 
         double bearing = Math.Atan2(y, x);
-        return (ToDegrees(bearing) * 360) % 360;
+        double degrees = ToDegrees(bearing);
+        return (degrees + 360) % 360;
     }
 
     private static double ToRadians(double degrees) => degrees * Math.PI / 180;
