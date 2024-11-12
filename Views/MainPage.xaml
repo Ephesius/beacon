@@ -140,9 +140,9 @@
                        TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}" />
 
                 <Ellipse Grid.Column="2"
-                         HeightRequest="30"
-                         WidthRequest="30"
-                         BackgroundColor="Black"
+                         HeightRequest="27"
+                         WidthRequest="27"
+                         BackgroundColor="White"
                          Margin="0,0,10,0"
                          HorizontalOptions="End"/>
 
@@ -152,7 +152,7 @@
                          WidthRequest="25"
                          HorizontalOptions="End"
                          VerticalOptions="Center"
-                         Margin="0,0,12.5,0"/>
+                         Margin="0,0,11,0"/>
             </Grid>
         </Border>
     </Grid>
