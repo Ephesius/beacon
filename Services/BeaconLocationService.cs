@@ -283,8 +283,8 @@ public partial class BeaconLocationService : ObservableObject, IBeaconLocationSe
     {
         SignalStatus = accuracy switch
         {
-            <= 5.0 => GPSStatus.Strong,
-            <= 10.0 => GPSStatus.Weak,
+            <= 6.0 => GPSStatus.Strong,
+            <= 12.0 => GPSStatus.Weak,
             _ => GPSStatus.None
         };
 
