@@ -153,16 +153,25 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task ClearBeacon()
     {
-        try
+        bool shouldClear = await Shell.Current.DisplayAlert(
+            "Clear Beacon",
+            "Clear beacon location?",
+            "Clear",
+            "Cancel");
+
+        if (shouldClear)
         {
-            await _stateService.ClearBeacon();
-            CurrentState = AppState.SetBeacon;
-            await _stateService.SaveState(CurrentState);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to clear beacon");
-            StatusMessage = "Failed to clear beacon";
+            try
+            {
+                await _stateService.ClearBeacon();
+                CurrentState = AppState.SetBeacon;
+                await _stateService.SaveState(CurrentState);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to clear beacon");
+                StatusMessage = "Failed to clear beacon";
+            }
         }
     }
 
