@@ -21,32 +21,18 @@
 
         <!-- Header Section -->
         <Grid Grid.Row="0" 
-              ColumnDefinitions="*,Auto"
+              ColumnDefinitions="*"
               Margin="0,0,0,20">
             <StackLayout Grid.Column="0">
                 <Label Text="Beacon"
                        FontSize="24"
-                       FontAttributes="Bold" />
+                       FontAttributes="Bold"
+                       HorizontalOptions="Center"/>
                 <Label Text="Never get lost again"
                        FontSize="16"
-                       Opacity="0.7" />
+                       Opacity="0.7"
+                       HorizontalOptions="Center"/>
             </StackLayout>
-
-            <!-- GPS Status Indicator -->
-            <Frame Grid.Column="1"
-                   HeightRequest="44"
-                   WidthRequest="44"
-                   CornerRadius="22"
-                   Padding="0"
-                   IsClippedToBounds="True">
-                <Grid>
-                    <Ellipse Fill="{Binding SignalStatus, Converter={StaticResource SignalStatusToColorConverter}}"
-                            HeightRequest="12"
-                            WidthRequest="12"
-                            HorizontalOptions="Center"
-                            VerticalOptions="Center" />
-                </Grid>
-            </Frame>
         </Grid>
 
         <!-- Main Content Area -->
@@ -135,15 +121,39 @@
                 Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray500}}"
                 StrokeThickness="1"
                 StrokeShape="Rectangle"
-                HeightRequest="50">
-            <!-- Padding="20,12" -->
-                <!-- Margin="0"> -->
+                HeightRequest="50"
+                Margin="-20,20,-20,0">
 
-            <Label Text="{Binding StatusMessage}"
-                   FontSize="14"
-                   VerticalOptions="Center"
-                   HorizontalOptions="Center"
-                   TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"/>
+            <Grid ColumnDefinitions="Auto,*"
+                  Padding="20,12">
+
+                <BoxView Grid.Column="0"
+                         WidthRequest="0"
+                         IsVisible="False"/>
+
+                <!-- Status Message -->
+                <Label Grid.Column="1"
+                       Text="{Binding StatusMessage}"
+                       FontSize="14"
+                       VerticalOptions="Center"
+                       HorizontalOptions="Center"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}" />
+
+                <Ellipse Grid.Column="2"
+                         HeightRequest="30"
+                         WidthRequest="30"
+                         BackgroundColor="Black"
+                         Margin="0,0,10,0"
+                         HorizontalOptions="End"/>
+
+                <Ellipse Grid.Column="2" 
+                         Fill="{Binding SignalStatus, Converter={StaticResource SignalStatusToColorConverter}}"
+                         HeightRequest="25"
+                         WidthRequest="25"
+                         HorizontalOptions="End"
+                         VerticalOptions="Center"
+                         Margin="0,0,12.5,0"/>
+            </Grid>
         </Border>
     </Grid>
 </ContentPage>
