@@ -139,17 +139,12 @@
                        HorizontalOptions="Center"
                        TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}" />
 
-                <Ellipse Grid.Column="2"
-                         HeightRequest="27"
-                         WidthRequest="27"
-                         BackgroundColor="White"
-                         Margin="0,0,10,0"
-                         HorizontalOptions="End"/>
-
                 <Ellipse Grid.Column="2" 
                          Fill="{Binding SignalStatus, Converter={StaticResource SignalStatusToColorConverter}}"
-                         HeightRequest="25"
-                         WidthRequest="25"
+                         HeightRequest="30"
+                         WidthRequest="30"
+                         Stroke="White"
+                         StrokeThickness="1.5"
                          HorizontalOptions="End"
                          VerticalOptions="Center"
                          Margin="0,0,11,0"/>
