@@ -16,8 +16,8 @@
         </Style>
     </ContentPage.Resources>
 
-    <Grid RowDefinitions="Auto,*,Auto"
-          Padding="20">
+    <Grid RowDefinitions="Auto,*,Auto,Auto"
+          Padding="0,10,0,0">
 
         <!-- Header Section -->
         <Grid Grid.Row="0" 
@@ -59,6 +59,9 @@
                         Style="{StaticResource MainActionButton}"
                         Command="{Binding SetBeaconCommand}"
                         IsEnabled="{Binding SignalStatus, Converter={StaticResource SignalStatusToEnabledConverter}}" />
+                <Button IsVisible="False"
+                        HeightRequest="38"
+                        Margin="0,20,0,0"/>
             </StackLayout>
 
             <!-- Find Beacon State -->
@@ -84,16 +87,11 @@
                            VerticalOptions="Center"
                            Aspect="AspectFit" />
                 </Grid>
-                
+
                 <Label Grid.Row="1"
                        Text="{Binding Distance, StringFormat='{0:F0} meters away'}"
                        FontSize="24"
-                       HorizontalOptions="Center"
-                       />
-                <Button Grid.Row="2"
-                        Text="Stop Navigation"
-                        Command="{Binding StopNavigationCommand}"
-                        Margin="0,80,0,0" />
+                       HorizontalOptions="Center" />
             </Grid>
 
             <!-- Destination State -->
@@ -105,28 +103,47 @@
                        HorizontalOptions="Center" />
                 <Button Text="Complete Journey"
                         Command="{Binding CompleteJourneyCommand}"
-                        Margin="0,20,0,0" />
+                        Margin="0,20,0,0"
+                        WidthRequest="200"
+                        HorizontalOptions="Center" />
             </StackLayout>
         </Grid>
 
+        <!-- Action Button Row -->
+        <Grid Grid.Row="2">
+            <!-- Clear Beacon Button -->
+            <Button Text="Clear Beacon"
+                    Command="{Binding ClearBeaconCommand}"
+                    IsVisible="{Binding CurrentState, Converter={StaticResource StateToVisibilityConverter}, ConverterParameter={x:Static models:AppState.FindBeacon}}"
+                    Margin="0,0,0,10"
+                    WidthRequest="200"
+                    HorizontalOptions="Center" />
+
+            <!-- Stop Navigation Button -->
+            <Button Text="Stop Navigation"
+                    Command="{Binding StopNavigationCommand}"
+                    IsVisible="{Binding CurrentState, Converter={StaticResource StateToVisibilityConverter}, ConverterParameter={x:Static models:AppState.Navigation}}"
+                    Margin="0,0,0,10"
+                    WidthRequest="200"
+                    HorizontalOptions="Center" />
+        </Grid>
+
         <!-- Status Banner -->
-        <Frame Grid.Row="2"
-               BorderColor="Transparent"
-               BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
-               Margin="0,20,0,0"
-               Padding="10">
-            <Grid ColumnDefinitions="*,Auto">
-                <Label Grid.Column="0" 
-                       Text="{Binding StatusMessage}"
-                       VerticalOptions="Center"
-                       HorizontalOptions="Center"/>
-                <Button Grid.Column="1"
-                        Text="×"
-                        FontSize="20"
-                        Command="{Binding ClearBeaconCommand}"
-                        IsVisible="{Binding CurrentState, Converter={StaticResource StateToVisibilityConverter}, ConverterParameter={x:Static models:AppState.FindBeacon}}"
-                        BackgroundColor="Transparent" />
-            </Grid>
-        </Frame>
+        <Border Grid.Row="3"
+                HorizontalOptions="FillAndExpand"
+                BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}"
+                Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray500}}"
+                StrokeThickness="1"
+                StrokeShape="Rectangle"
+                HeightRequest="50">
+            <!-- Padding="20,12" -->
+                <!-- Margin="0"> -->
+
+            <Label Text="{Binding StatusMessage}"
+                   FontSize="14"
+                   VerticalOptions="Center"
+                   HorizontalOptions="Center"
+                   TextColor="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray100}}"/>
+        </Border>
     </Grid>
 </ContentPage>
