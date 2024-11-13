@@ -5,20 +5,48 @@ using System.Text.Json;
 
 namespace Beacon.Services;
 
+/// <summary>
+/// Manages application state persistence and restoration, handling secure storage of Beacon Locations
+/// and application state transitions. Implements IStateService for dependency injection.
+/// 
+/// Storage Requirements:
+/// - Beacon coordinates stored in SecureStorage with encryption
+/// - App State persisted in Preferences
+/// - All data automatically cleared on journey completion or app uninstall
+/// </summary>
 public partial class StateService : ObservableObject, IStateService
 {
     private readonly ILogger<StateService> _logger;
     private const string BeaconKey = "stored_beacon";
     private const string StateKey = "app_state";
 
+    /// <summary>
+    /// Event triggered when application state changes.
+    /// Provides null when Beacon is cleared.
+    /// </summary>
     public event EventHandler<BeaconLocation?>? BeaconChanged;
+    
+    /// <summary>
+    /// Event triggered when application state changes.
+    /// Used to update UI and trigger state-specific behaviors.
+    /// </summary>
     public event EventHandler<AppState>? StateChanged;
 
+    /// <summary>
+    /// Initializes the state service with required dependencies.
+    /// </summary>
+    /// <param name="logger">Logging service for error tracking and debugging</param>
     public StateService(ILogger<StateService> logger)
     {
         _logger = logger;
     }
 
+    /// <summary>
+    /// Stores a Beacon Location in SecureStorage with encryption.
+    /// Triggers BeaconChanged event on successful storage.
+    /// </summary>
+    /// <param name="location">Validated Beacon Locaiton to store</param>
+    /// <returns>True if storage successful, false if failed</returns>
     public async Task<bool> StoreBeacon(BeaconLocation location)
     {
         try
@@ -35,6 +63,11 @@ public partial class StateService : ObservableObject, IStateService
         }
     }
 
+    /// <summary>
+    /// Retrieves stored Beacon Location from SecureStorage fi exists.
+    /// Returns null if no Beacon is stored <see langword="or"/>if retrieval fails.
+    /// </summary>
+    /// <returns>Stored Beacon Location or null</returns>
     public async Task<BeaconLocation?> RetrieveBeacon()
     {
         try
@@ -52,6 +85,11 @@ public partial class StateService : ObservableObject, IStateService
         }
     }
 
+    /// <summary>
+    /// Removes stored Beacon Location from SecureStorage.
+    /// Triggers BeaconChanged event with null value or sucessful removal.
+    /// </summary>
+    /// <returns><see langword="true"/>if clear successful, false if failed</returns>
     public Task<bool> ClearBeacon()
     {
         try
@@ -67,6 +105,11 @@ public partial class StateService : ObservableObject, IStateService
         }
     }
 
+    /// <summary>
+    /// Retrieves last known application state from Preferences.
+    /// Returns SetBeacon state if no stored state exists.
+    /// </summary>
+    /// <returns>Last known AppState or SetBeacon default</returns>
     public Task<AppState> GetLastKnownState()
     {
         try
@@ -81,6 +124,12 @@ public partial class StateService : ObservableObject, IStateService
         }
     }
 
+    /// <summary>
+    /// Persists current application state in Preferences.
+    /// Triggers StateChanged event on successful save.
+    /// </summary>
+    /// <param name="state"></param>
+    /// <returns>True if save successful, false if failed</returns>
     public Task<bool> SaveState(AppState state)
     {
         try

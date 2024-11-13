@@ -1,4 +1,23 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
+
+<!-- MainPage.xaml -->
+<!--
+Primary UI layout for Beacon application implementing a state-based navigation interface.
+Uses Grid layout to organize:
+    - Header section with title and subtitle
+    - Main content area with state-specific displays
+    - Action button row
+    - Status banner with GPS indicator
+
+Key Features:
+    - Visibility controlled by state converters
+    - Standard button sizes and touch targets
+    - Consistent spacing and margins
+    - GPS status indicator in banner
+    - Dynamic status messages
+    - Rotation-based navigation arrow
+-->
+    
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:viewmodels="clr-namespace:Beacon.ViewModels"
